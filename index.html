@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BGMI WOW Tournament & Auction Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+       <a href="#" class="brand">
+         <div class="brand-mark">V</div> 
+         <div>TOURNAMENT<small>BGMI WOW ARENA</small></div>
+       </a>
+
+       <!-- Active Tournament Quick Box in Sidebar -->
+       <div style="margin-top: 24px; padding: 14px; background: #18181c; border: 1px solid #303036; border-radius: 8px;">
+          <small style="font: 9px 'DM Mono'; letter-spacing: 1px; color: var(--muted); display: block;">ACTIVE TOURNAMENT</small>
+          <strong id="sidebar-tourney-name" style="font-size: 13px; color: #fff; display: block; margin: 4px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">No Tournament</strong>
+          <div id="sidebar-tourney-meta" style="font: 10px 'DM Mono'; color: var(--lime); margin-bottom: 10px;">-</div>
+          <button id="btn-switch-tourney" class="tourney-switch-btn" style="width: 100%; text-align: center;">⚙️ Manage / Switch</button>
+       </div>
+
+       <nav style="margin-top: 20px;">
+          <a class="nav-link active" data-target="dashboard-page"><span>📊</span> Overview</a>
+          <a class="nav-link admin-only" data-target="players-page"><span>👥</span> Database Players <b id="nav-players-count">0</b></a>
+          <a class="nav-link" data-target="auction-page"><span>🔨</span> Live Auction</a>
+          <a class="nav-link" data-target="fixtures-page"><span>⚔️</span> Fixtures</a>
+          <a class="nav-link" data-target="standings-page"><span>📈</span> Standings</a>
+       </nav>
+
+       <div class="side-bottom">
+          <div class="season-card">
+             <i class="pulse"></i>
+             <div><small>CLOUD SYNC</small><strong>Firebase Live</strong></div>
+          </div>
+       </div>
+    </aside>
+
+    <main>
+       <div class="topbar">
+         <button class="menu-btn">☰</button>
+         <div class="crumb">
+           Tournament <i>/</i> <strong id="topbar-title">Overview</strong> <i>/</i> <span id="topbar-tourney" style="color: var(--lime); font-size: 11px;">None</span>
+         </div>
+         <div class="top-actions">
+           <div id="auth-section" style="display: flex; align-items: center; gap: 10px;">
+             <button class="primary" id="btn-login-discord" style="background: #5865F2; color: white; border-color: #5865F2;"><img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a69f118df70ad7828d4_icon_clyde_blurple_RGB.svg" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px; filter: brightness(0) invert(1);" alt="Discord"> Login</button>
+             <div id="user-info" style="display: none; align-items: center; gap: 8px;">
+               <span id="user-name-display" style="font-size: 13px; font-weight: bold; color: var(--lime);"></span>
+               <span id="user-role-badge" style="font-size: 9px; background: #2b2b30; padding: 2px 6px; border-radius: 4px;">PLAYER</span>
+               <button class="ghost" id="btn-logout" style="font-size: 11px; padding: 6px 10px;">Logout</button>
+             </div>
+           </div>
+           <button class="primary" id="btn-open-register-top" style="display: none;">📝 Register Player</button>
+           <button class="ghost" id="btn-create-tourney-top" class="ghost admin-only" style="font-size: 11px; display: none;">+ New Tourney</button>
+         </div>
+       </div>
+       
+       <div id="main-content-area" style="padding: 0 46px;">
+
+          <!-- No Tournament State -->
+          <div id="no-tourney-state" class="no-tourney-card" style="display: none;">
+             <span class="no-tourney-icon">🏆</span>
+             <h2>No Active Tournament Found</h2>
+             <p>Admins can create a tournament session (2v2, 3v3, or 4v4 with Playoffs or Upper/Lower Bracket format) to open registration and conduct the auction.</p>
+             <button class="primary" id="btn-create-first-tourney" class="primary admin-only" style="padding: 13px 28px; font-size: 13px;">+ Create Tournament</button>
+          </div>
+
+          <!-- Tournament Content Area -->
+          <div id="active-tourney-container">
+
+             <!-- Dashboard / Overview Page -->
+             <div id="dashboard-page" class="page active" style="padding-left: 0; padding-right: 0;">
+                
+                <!-- Tournament Specifications Banner (Displays on mobile & desktop) -->
+                <div class="active-tourney-bar" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+                      <div class="tourney-meta">
+                         <h3 style="font-size: 18px;">🏆 <span id="dash-tourney-title">Loading Tournament...</span></h3>
+                         <p>Created on <span id="dash-tourney-date">-</span> • Status: <span style="color: var(--lime); font-weight: bold;">LIVE FOR PLAYERS</span></p>
+                      </div>
+                      <button class="primary" id="btn-hero-register">📝 Register Now</button>
+                   </div>
+                   
+                   <div class="tourney-specs-bar">
+                      <div class="spec-chip">Teams: <strong id="spec-teams">10 Teams</strong></div>
+                      <div class="spec-chip">Mode: <strong id="spec-mode">4v4</strong></div>
+                      <div class="spec-chip">Format: <strong id="spec-format">Playoffs</strong></div>
+                      <div class="spec-chip">Target: <strong id="spec-target">0 / 40 Players</strong></div>
+                      <div class="spec-chip prize">Prize Pool: <strong id="spec-prize">₹1000</strong></div>
+                      <div class="spec-chip">Entry Fee: <strong id="spec-fee">₹50</strong></div>
+                   </div>
+                </div>
+
+                <div class="stat-grid">
+                  <div class="stat-card">
+                     <span>REGISTERED PLAYERS</span>
+                     <strong id="stat-players">0</strong>
+                     <i class="format-icon">👥</i>
+                  </div>
+                  <div class="stat-card">
+                     <span>FEE PAID (ELIGIBLE)</span>
+                     <strong id="stat-fee-paid" style="color: var(--green);">0</strong>
+                     <i class="format-icon">💰</i>
+                  </div>
+                  <div class="stat-card">
+                     <span>BIDDER CAPTAINS</span>
+                     <strong id="stat-teams" style="color: var(--orange);">0</strong>
+                     <i class="format-icon">🛡️</i>
+                  </div>
+                  <div class="stat-card">
+                     <span>AUCTION STATUS</span>
+                     <strong id="stat-auction-status" style="font-size: 16px; color: var(--lime);">Configuring</strong>
+                     <i class="format-icon">🔨</i>
+                  </div>
+                </div>
+
+                <!-- Live Teams Overview -->
+                <div class="panel" style="margin-top: 20px;">
+                   <div class="panel-head">
+                      <h2>Team Rosters & Budgets</h2>
+                      <span style="font: 10px 'DM Mono'; color: var(--muted);">₹100 Starting Purse</span>
+                   </div>
+                   <div class="team-wallets" id="dash-teams-grid">
+                      <!-- Rendered by JS -->
+                   </div>
+                </div>
+             </div>
+             
+             <!-- Database Players Page -->
+             <div id="players-page" class="page" style="padding-left: 0; padding-right: 0;">
+                <div class="page-title">
+                  <div>
+                    <h1>Database Players</h1>
+                    <p>Sorted by rating (High to Low). Admins classify players into Pro, Mid, and Noob categories.</p>
+                  </div> 
+                  <div style="display: flex; gap: 8px;">
+                     <button class="primary" id="btn-add-player">+ Register Player</button>
+                  </div>
+                </div>
+
+                <div class="filter-row">
+                   <div class="filter active" data-filter="ALL">All (<span id="count-all">0</span>)</div>
+                   <div class="filter" data-filter="PENDING" style="color:#ffcc5f;">⏳ Pending Review (<span id="count-pending">0</span>)</div>
+                   <div class="filter" data-filter="PRO">💎 Pro (<span id="count-pro">0</span>)</div>
+                   <div class="filter" data-filter="MID">⚡ Mid (<span id="count-mid">0</span>)</div>
+                   <div class="filter" data-filter="NOOB">🌱 Noob (<span id="count-noob">0</span>)</div>
+                </div>
+
+                <div class="roster-grid" id="players-grid">
+                   <!-- Player Cards injected here -->
+                </div>
+             </div>
+             
+             <!-- Live Auction Room Page -->
+             <div id="auction-page" class="page" style="padding-left: 0; padding-right: 0;">
+                
+                 
+                 <!-- Admin Auction Configuration Bar (Shown for Admin) -->
+                 <div class="auction-control-panel" id="admin-auction-config-panel" class="auction-control-panel admin-only">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                       
+                       <!-- Step 1: Decide Bidders Category -->
+                       <div>
+                          <div class="auction-step-title">
+                             <span>Step 1</span> Decide Bidders Category (Captains)
+                          </div>
+                          <div class="bidder-cat-btns">
+                             <button class="btn-cat-select" data-bidder="PRO">💎 PROs are Bidders</button>
+                             <button class="btn-cat-select" data-bidder="MID">⚡ MIDs are Bidders</button>
+                             <button class="btn-cat-select" data-bidder="NOOB">🌱 NOOBs are Bidders</button>
+                          </div>
+                          <small style="color: var(--muted); font: 9px 'DM Mono'; display: block; margin-top: 6px;">
+                             Selected category becomes Team Captains with ₹100 purse.
+                          </small>
+                       </div>
+
+                       <!-- Step 2: Decide Auction Lot Category -->
+                       <div>
+                          <div class="auction-step-title">
+                             <span>Step 2</span> Choose Category to Auction
+                          </div>
+                          <div style="display: flex; gap: 8px; align-items: center;">
+                             <select id="select-auction-category" class="form-input" style="flex: 1; padding: 9px 12px; margin: 0 !important;">
+                                <option value="">Select category...</option>
+                                <option value="PRO">💎 Pro Players</option>
+                                <option value="MID">⚡ Mid Players</option>
+                                <option value="NOOB">🌱 Noob Players</option>
+                             </select>
+                             <button class="primary" id="btn-draw-random-player" style="white-space: nowrap; padding: 10px 16px;">
+                                🎲 Draw Random Player
+                             </button>
+                          </div>
+                          <small style="color: var(--muted); font: 9px 'DM Mono'; display: block; margin-top: 6px;">
+                             Picks a random unsold player from this category (excluding bidders category).
+                          </small>
+                       </div>
+
+                    </div>
+                 </div>
+
+                 <div class="auction-layout">
+                    <div>
+                       <!-- Live Lot Card -->
+                       <div class="lot-card">
+                          
+                          <!-- Active Player Under Bidding -->
+                          <div id="active-player-display" style="display:none;">
+                            <div class="lot-status">
+                               <span class="live-dot">● BIDDING IN PROGRESS</span>
+                               <span style="font: 9px 'DM Mono'; color: var(--lime);">INCREMENT: +5</span>
+                            </div>
+
+                            <div class="lot-player">
+                               <div class="avatar giant" id="auc-avatar">P</div>
+                               <div>
+                                 <h2 id="auc-name">Player Name</h2>
+                                 <p id="auc-cat">CATEGORY • RATING: <span id="auc-rating" style="color:var(--orange);">90</span></p>
+                               </div>
+                            </div>
+
+                            <div class="bid-value" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                               <div>
+                                  <span>CURRENT BID</span>
+                                  <strong id="auc-highest-bid" style="color: var(--lime); font-size: 34px;">₹0</strong>
+                                  <p id="auc-highest-bidder" style="margin-left: 14px; font-weight: 700;">No bids placed</p>
+                               </div>
+
+                               <!-- Admin Only Action Buttons (Sell, Declare Tie, Skip) -->
+                               <div id="admin-auction-actions" style="display: flex; gap: 8px;">
+                                  <button class="primary" id="btn-sold" style="background: var(--green); color: #111; padding: 10px 22px; font-weight: 800;">
+                                     🔨 SOLD!
+                                  </button>
+                                  <button class="ghost" id="btn-declare-tie" style="color: var(--orange); border-color: var(--orange); padding: 10px 14px;">
+                                     ⚔️ Declare Tie
+                                  </button>
+                                  <button class="ghost" id="btn-skip-lot" style="padding: 10px 12px;">Skip</button>
+                               </div>
+                            </div>
+
+                            <!-- Captain's Own Bidding Console (Visible when device is a Captain) -->
+                            <div id="my-captain-console" style="display: none; margin-top: 22px; background: #16181b; border: 1px solid var(--lime); border-radius: 8px; padding: 18px;">
+                               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                  <div>
+                                     <small style="font: 9px 'DM Mono'; letter-spacing: 1px; color: var(--muted); display: block;">YOUR TEAM PURSE</small>
+                                     <strong id="my-captain-purse" style="font-size: 24px; color: var(--lime);">₹100</strong>
+                                  </div>
+                                  <div id="my-captain-status" style="font: 11px 'DM Mono'; font-weight: 700; color: #fff;">
+                                     Ready to Bid
+                                  </div>
+                               </div>
+                               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                  <button class="primary" id="btn-my-bid-plus5" style="padding: 14px; font-size: 14px; font-weight: 900; background: var(--lime); color: #111;">
+                                     🔥 BID +5 (₹5)
+                                  </button>
+                                  <button class="ghost" id="btn-my-match-bid" style="padding: 14px; font-size: 14px; font-weight: 800; border-color: var(--orange); color: var(--orange);">
+                                     ⚔️ MATCH BID (TIE)
+                                  </button>
+                               </div>
+                            </div>
+
+                            <!-- Spectator / Auctioned Player View Banner -->
+                            <div id="auction-spectator-banner" style="display: none; margin-top: 20px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px dashed #333339; border-radius: 6px; text-align: center;">
+                               <span style="font: 11px 'DM Mono'; color: #bbb;">👀 Viewing live auction as <strong id="spectator-role-name" style="color: #fff;">Player</strong>. Waiting for captains to bid...</span>
+                            </div>
+
+                            <!-- All Captains Overview Deck (Visible for Admin and info) -->
+                            <div id="all-captains-deck-container" style="margin-top: 24px;">
+                               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                  <span style="font: 10px 'DM Mono'; letter-spacing: 1px; color: var(--muted); text-transform: uppercase;">
+                                     Captains & Purse Status
+                                  </span>
+                                  <small id="captains-deck-subtext" style="font: 9px 'DM Mono'; color: #777;">
+                                     Captains bid directly from their own devices
+                                  </small>
+                               </div>
+                               <div class="captain-bid-cards" id="captain-bid-deck">
+                                  <!-- Dynamic Captain Status Cards Injected Here -->
+                               </div>
+                            </div>
+
+                          </div>
+
+                         <!-- Empty State -->
+                         <div id="empty-auction-display" style="text-align:center; padding: 54px 0; color: #777;">
+                            <span style="font-size: 38px; display: block; margin-bottom: 10px;">🎲</span>
+                            <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 6px;">No Active Auction Lot</strong>
+                            <p style="font-size: 12px; color: var(--muted); margin: 0 auto; max-width: 360px;">
+                               Select the bidders category above, pick the category to auction, and click <strong>"Draw Random Player"</strong>.
+                            </p>
+                         </div>
+
+                      </div>
+
+                      <!-- Live Bid Log -->
+                      <div class="panel" style="margin-top: 14px; padding: 16px;">
+                         <div class="panel-head" style="margin-bottom: 10px;">
+                            <h2>Auction Feed</h2>
+                         </div>
+                         <div id="auction-bid-feed" style="max-height: 140px; overflow-y: auto; font: 11px 'DM Mono'; color: #bbb;">
+                            <p style="color: #666; margin: 4px 0;">Feed started...</p>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <!-- Captains & Rosters Sidebar -->
+                   <div>
+                      <div class="panel teams-panel" style="margin-top: 0;">
+                         <div class="panel-head">
+                            <h2>Team Wallets & Rosters</h2> 
+                         </div>
+                         <div class="team-wallets" id="captains-wallets" style="grid-template-columns: 1fr;">
+                            <!-- Captains injected here -->
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             <!-- Fixtures Page -->
+             <div id="fixtures-page" class="page" style="padding-left: 0; padding-right: 0;">
+                <div class="page-title">
+                   <div>
+                     <h1>Fixtures & Results</h1>
+                     <p>Generate Group A & Group B matches and input round scores</p>
+                   </div> 
+                   <button class="primary" id="btn-generate-fixtures" class="admin-only primary">⚡ Generate Fixtures</button>
+                </div>
+                <div class="fixtures-grid">
+                   <div class="panel">
+                      <div class="group-title"><span style="background:var(--violet);">A</span><h2>Group A Matches</h2></div> 
+                      <div id="fixtures-group-a"></div>
+                   </div>
+                   <div class="panel">
+                      <div class="group-title"><span style="background:var(--orange);">B</span><h2>Group B Matches</h2></div> 
+                      <div id="fixtures-group-b"></div>
+                   </div>
+                </div>
+             </div>
+
+             <!-- Standings Page -->
+             <div id="standings-page" class="page" style="padding-left: 0; padding-right: 0;">
+                <div class="page-title">
+                  <div>
+                    <h1>Points Table</h1>
+                    <p>Win = 3 pts, Loss = 0 pts. Ranked by Points, then Round Difference (RD).</p>
+                  </div>
+                </div>
+                <div class="standing-note">
+                  <span>!</span>
+                  <p>In WOW Mode, round difference (RD) serves as the primary tie-breaker. Top teams advance to playoffs.</p>
+                </div>
+                <div class="fixtures-grid">
+                   <div class="table-wrap">
+                      <div class="group-title" style="padding:16px 16px 0;"><span style="background:var(--violet);">A</span><h2>Group A Standings</h2></div>
+                      <table>
+                         <thead><tr><th>#</th><th>Team</th><th>M</th><th>W</th><th>L</th><th>RD</th><th>Pts</th></tr></thead>
+                         <tbody id="standings-group-a"></tbody>
+                      </table>
+                   </div>
+                   <div class="table-wrap">
+                      <div class="group-title" style="padding:16px 16px 0;"><span style="background:var(--orange);">B</span><h2>Group B Standings</h2></div>
+                      <table>
+                         <thead><tr><th>#</th><th>Team</th><th>M</th><th>W</th><th>L</th><th>RD</th><th>Pts</th></tr></thead>
+                         <tbody id="standings-group-b"></tbody>
+                      </table>
+                   </div>
+                </div>
+             </div>
+
+          </div> <!-- /active-tourney-container -->
+
+       </div> <!-- /main-content-area -->
+
+    </main>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Tournament Creation / Setup Modal -->
+  <div class="modal-backdrop" id="modal-create-tournament">
+     <div class="modal" style="max-width: 500px;">
+        <button class="close-modal" id="close-modal-create-tourney">&times;</button>
+        <h2>Create Tournament</h2>
+        <p>Set up the tournament format, mode, and prize details for players.</p>
+        <form id="form-create-tournament">
+           <div class="form-group">
+              <label>Tournament Title</label>
+              <input type="text" id="create-tourney-name" class="form-input" required placeholder="e.g. BGMI WOW Night Championship">
+           </div>
+
+           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                 <label>Team Size / Mode</label>
+                 <select id="create-tourney-mode" class="form-input">
+                    <option value="4v4" selected>4v4 Squads</option>
+                    <option value="3v3">3v3 Trios</option>
+                    <option value="2v2">2v2 Duos</option>
+                 </select>
+              </div>
+              <div class="form-group">
+                 <label>Number of Teams</label>
+                 <select id="create-tourney-teams" class="form-input">
+                    <option value="10" selected>10 Teams (Default)</option>
+                    <option value="8">8 Teams</option>
+                    <option value="6">6 Teams</option>
+                    <option value="4">4 Teams</option>
+                    <option value="12">12 Teams</option>
+                    <option value="16">16 Teams</option>
+                 </select>
+              </div>
+              <div class="form-group">
+                 <label>Tournament Format</label>
+                 <select id="create-tourney-format" class="form-input">
+                    <option value="playoffs">Playoffs Format</option>
+                    <option value="upper_lower">Upper / Lower Bracket</option>
+                 </select>
+              </div>
+           </div>
+
+           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                 <label>Prize Pool (₹)</label>
+                 <input type="number" id="create-tourney-prize" class="form-input" required value="1000" min="0">
+              </div>
+              <div class="form-group">
+                 <label>Registration Fee (₹)</label>
+                 <input type="number" id="create-tourney-fee" class="form-input" required value="50" min="0">
+              </div>
+           </div>
+
+           <div class="form-group">
+              <label>Invite Passcode (Optional)</label>
+              <input type="text" id="create-tourney-code" class="form-input" value="WOW2026" placeholder="e.g. WOW2026">
+           </div>
+
+           <div class="modal-footer">
+              <button type="button" class="btn-cancel" id="btn-cancel-create-tourney">Cancel</button>
+              <button type="submit" class="btn-submit">🚀 Launch Tournament</button>
+           </div>
+        </form>
+     </div>
+  </div>
+
+  <!-- Tournament Edit Modal (Manage settings after creation) -->
+  <div class="modal-backdrop" id="modal-edit-tournament">
+     <div class="modal" style="max-width: 500px;">
+        <button class="close-modal" id="close-modal-edit-tourney">&times;</button>
+        <h2>Manage Tournament</h2>
+        <p>Update tournament settings, format, or teams capacity.</p>
+        <form id="form-edit-tournament">
+           <input type="hidden" id="edit-tourney-id">
+           
+           <div class="form-group">
+              <label>Tournament Title</label>
+              <input type="text" id="edit-tourney-name" class="form-input" required>
+           </div>
+
+           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                 <label>Team Size / Mode</label>
+                 <select id="edit-tourney-mode" class="form-input">
+                    <option value="4v4">4v4 Squads</option>
+                    <option value="3v3">3v3 Trios</option>
+                    <option value="2v2">2v2 Duos</option>
+                 </select>
+              </div>
+              <div class="form-group">
+                 <label>Number of Teams</label>
+                 <select id="edit-tourney-teams" class="form-input">
+                    <option value="4">4 Teams</option>
+                    <option value="6">6 Teams</option>
+                    <option value="8">8 Teams</option>
+                    <option value="10">10 Teams</option>
+                    <option value="12">12 Teams</option>
+                    <option value="16">16 Teams</option>
+                 </select>
+              </div>
+              <div class="form-group">
+                 <label>Tournament Format</label>
+                 <select id="edit-tourney-format" class="form-input">
+                    <option value="playoffs">Playoffs</option>
+                    <option value="upper_lower">Upper / Lower</option>
+                 </select>
+              </div>
+           </div>
+
+           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                 <label>Prize Pool (₹)</label>
+                 <input type="number" id="edit-tourney-prize" class="form-input" required min="0">
+              </div>
+              <div class="form-group">
+                 <label>Registration Fee (₹)</label>
+                 <input type="number" id="edit-tourney-fee" class="form-input" required min="0">
+              </div>
+           </div>
+
+           <div class="form-group">
+              <label>Invite Passcode</label>
+              <input type="text" id="edit-tourney-code" class="form-input">
+           </div>
+
+           <div class="modal-footer">
+              <button type="button" class="btn-cancel" id="btn-cancel-edit-tourney">Cancel</button>
+              <button type="submit" class="btn-submit">💾 Save Changes</button>
+           </div>
+        </form>
+     </div>
+  </div>
+
+  <!-- Player Registration Modal (Used by players on mobile or admin) -->
+  <div class="modal-backdrop" id="modal-register-player">
+     <div class="modal">
+        <button class="close-modal" id="close-modal-register">&times;</button>
+        <h2>Register for Tournament</h2>
+        <p>Join <strong id="reg-modal-tourney-title" style="color:var(--lime);">this tournament</strong> with your in-game name.</p>
+        <form id="form-register-player">
+           
+           <div class="form-group">
+              <label>Your In-Game Name (IGN) / Player Name</label>
+              <input type="text" id="reg-player-name" class="form-input" required placeholder="e.g. Shinchan, Mikey, Spidey">
+           </div>
+
+           <div class="form-group">
+              <label>Choose Registration Method</label>
+              <div class="reg-options">
+                 <div class="reg-option-card selected" id="opt-pay-fee" data-method="fee">
+                    <span class="icon">💳</span>
+                    <strong>Pay Fee (<span id="reg-display-fee">₹50</span>)</strong>
+                    <small>Auto verifies fee paid</small>
+                 </div>
+                 <div class="reg-option-card" id="opt-invite-code" data-method="invite">
+                    <span class="icon">🎟️</span>
+                    <strong>Invite Code</strong>
+                    <small>Enter tourney code</small>
+                 </div>
+              </div>
+              <input type="hidden" id="reg-chosen-method" value="fee">
+           </div>
+
+           <!-- Invite Code field (hidden if fee selected) -->
+           <div class="form-group" id="reg-invite-group" style="display: none;">
+              <label>Enter Invite Code</label>
+              <input type="text" id="reg-invite-input" class="form-input" placeholder="Enter tournament invite code">
+           </div>
+
+           <!-- Notice that category & rating are decided by admins after registration closes -->
+           <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed #35353c; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+              <small style="color: var(--muted); font: 10px 'DM Mono'; line-height: 1.5; display: block;">
+                 ℹ️ <strong>Player Categorization Notice:</strong> Your category (Pro, Mid, Noob) & ratings will be evaluated and assigned by tournament admins once player registration meets the required count.
+              </small>
+           </div>
+
+           
+              
+              
+           
+
+           <div class="modal-footer">
+              <button type="button" class="btn-cancel" id="btn-cancel-register">Cancel</button>
+              <button type="submit" class="btn-submit">Complete Registration</button>
+           </div>
+        </form>
+     </div>
+  </div>
+
+  <!-- Tournament Switcher Modal -->
+  <div class="modal-backdrop" id="modal-tournament-manager">
+     <div class="modal" style="max-width: 520px;">
+        <button class="close-modal" id="close-modal-tourney-mgr">&times;</button>
+        <h2>Tournament Manager</h2>
+        <p>Switch between tournaments or create a new one.</p>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+           <button class="primary" id="btn-open-create-from-mgr" style="padding: 8px 14px; font-size: 11px;">+ Create New</button>
+        </div>
+
+        <div id="tournaments-list-container" style="max-height: 280px; overflow-y: auto;">
+           <!-- Tournament list rendered here -->
+        </div>
+
+        <div class="modal-footer" style="margin-top: 18px;">
+           <button type="button" class="btn-cancel" id="btn-close-tourney-mgr" style="width: 100%;">Close</button>
+        </div>
+     </div>
+  </div>
+
+  <!-- Tie Breaker Choice Modal (Displays for Player / Admin on Mobile) -->
+  <div class="modal-backdrop" id="modal-tie-breaker">
+     <div class="modal">
+        <h2 style="color: var(--orange);">⚔️ Auction Tie Breaker!</h2>
+        <p>Multiple bidders tied at the highest bid of <strong id="tie-amount-display" style="color:var(--lime);">₹0</strong> for <span id="tie-player-name" style="color:#fff; font-weight:800;"></span>.</p>
+        
+        <p style="font-size: 12px; color: #fff; margin-bottom: 8px;">The player selects which team to join:</p>
+        <div class="tie-grid" id="tie-choice-options">
+           <!-- Dynamic Choices Injected Here -->
+        </div>
+
+        <div class="modal-footer" style="margin-top: 12px;">
+           <button type="button" class="btn-cancel" id="btn-cancel-tie" style="width: 100%;">Cancel Tie</button>
+        </div>
+     </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
