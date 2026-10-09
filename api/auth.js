@@ -1,15 +1,5 @@
 import admin from 'firebase-admin';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-    })
-  });
-}
-
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -22,16 +12,27 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { code, redirectUri } = req.body;
-  if (!code) {
-    return res.status(400).json({ error: 'Missing Discord auth code' });
-  }
-
   try {
+    if (!admin.apps.length) {
+      if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error("Missing FIREBASE_PRIVATE_KEY");
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        })
+      });
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { code, redirectUri } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Missing Discord auth code' });
+    }
+
     // 1. Exchange code for token
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
       console.error('Discord Token Error:', tokenData);
-      return res.status(400).json({ error: 'Failed to exchange Discord token', details: tokenData });
+      return res.status(400).json({ error: 'Failed to exchange Discord token: ' + JSON.stringify(tokenData) });
     }
 
     // 2. Get Discord User Identity
@@ -75,7 +76,8 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'You are not a member of the required Discord server.' });
     }
     if (!memberResponse.ok) {
-      return res.status(500).json({ error: 'Failed to verify server membership.' });
+      const errorText = await memberResponse.text();
+      return res.status(500).json({ error: 'Failed to verify server membership. Bot token correct? ' + errorText });
     }
 
     const memberData = await memberResponse.json();
@@ -93,6 +95,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Auth handler error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error: ' + (error.message || error.toString()) });
   }
 }
