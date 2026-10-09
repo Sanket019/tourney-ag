@@ -38,17 +38,23 @@ export function initAuth() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, redirectUri: discordRedirectUri })
     })
-    .then(res => res.json())
+    .then(async res => {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details?.error_description || `Server error (${res.status})`);
+      }
+      return data;
+    })
     .then(data => {
-      if (data.token) {
+      if (data?.token) {
         signInWithCustomToken(auth, data.token);
       } else {
-        alert("Login failed: " + (data.error || "Unknown error"));
+        alert("Login failed: " + (data?.error || "Unknown token error"));
       }
     })
     .catch(err => {
-      console.error(err);
-      alert("Login error");
+      console.error("Authentication error:", err);
+      alert("Login Error: " + err.message);
     });
   }
 
