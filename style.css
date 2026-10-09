@@ -1,4 +1,4 @@
-:root{--bg:#111113;--surface:#1a1a1d;--surface2:#202024;--line:#303035;--muted:#9a9a9f;--text:#f6f5f1;--lime:#d6ff3f;--violet:#8d72ff;--orange:#ff9e36;--green:#4be49b}
+﻿:root{--bg:#111113;--surface:#1a1a1d;--surface2:#202024;--line:#303035;--muted:#9a9a9f;--text:#f6f5f1;--lime:#d6ff3f;--violet:#8d72ff;--orange:#ff9e36;--green:#4be49b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,Arial,sans-serif}
 button,input{font:inherit}
@@ -757,5 +757,7 @@ main{margin:0;width:100%}
   border: 1px solid #3a3a40 !important;
   border-radius: 4px !important;
 }
-b o d y : n o t ( . i s - a d m i n )   . a d m i n - o n l y   {   d i s p l a y :   n o n e   ! i m p o r t a n t ;   }  
- 
+
+body:not(.is-admin) .admin-only {
+  display: none !important;
+}

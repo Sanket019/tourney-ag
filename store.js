@@ -81,7 +81,7 @@ export const store = {
         }
       });
       window.dispatchEvent(new Event('stateChanged'));
-    });
+    }));
   },
 
   listenToSubcollections(tourneyId) {
