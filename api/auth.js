@@ -1,8 +1,16 @@
-const { initializeApp, getApps, cert } = require('firebase-admin/app');
-const { getAuth } = require('firebase-admin/auth');
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
+    })
+  });
+}
 
 module.exports = async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -13,22 +21,11 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    if (!getApps().length) {
-      if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error('Missing FIREBASE_PRIVATE_KEY env var');
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-        })
-      });
-    }
-
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
-
     const { code, redirectUri } = req.body;
     if (!code) {
       return res.status(400).json({ error: 'Missing Discord auth code' });
@@ -50,7 +47,7 @@ module.exports = async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
       console.error('Discord Token Error:', tokenData);
-      return res.status(400).json({ error: 'Failed to exchange Discord token: ' + JSON.stringify(tokenData) });
+      return res.status(400).json({ error: 'Discord token error: ' + JSON.stringify(tokenData) });
     }
 
     // 2. Get Discord User Identity
@@ -61,41 +58,36 @@ module.exports = async function handler(req, res) {
     if (!userResponse.ok) {
       return res.status(400).json({ error: 'Failed to fetch Discord user' });
     }
-    const discordId = userData.id;
-    const discordName = userData.username;
 
-    // 3. Get Guild Member info
-    const guildId = process.env.DISCORD_GUILD_ID;
-    const adminRoleId = process.env.DISCORD_ADMIN_ROLE_ID;
-    const botToken = process.env.DISCORD_BOT_TOKEN;
-
-    const memberResponse = await fetch('https://discord.com/api/guilds/' + guildId + '/members/' + discordId, {
-      headers: { Authorization: 'Bot ' + botToken }
-    });
+    // 3. Check Guild Membership + Admin Role
+    const memberResponse = await fetch(
+      'https://discord.com/api/guilds/' + process.env.DISCORD_GUILD_ID + '/members/' + userData.id,
+      { headers: { Authorization: 'Bot ' + process.env.DISCORD_BOT_TOKEN } }
+    );
 
     if (memberResponse.status === 404) {
       return res.status(403).json({ error: 'You are not a member of the required Discord server.' });
     }
     if (!memberResponse.ok) {
-      const errorText = await memberResponse.text();
-      return res.status(500).json({ error: 'Failed to verify server membership: ' + errorText });
+      const errText = await memberResponse.text();
+      return res.status(500).json({ error: 'Guild check failed: ' + errText });
     }
 
     const memberData = await memberResponse.json();
-    const isAdmin = memberData.roles.includes(adminRoleId);
+    const isAdmin = memberData.roles.includes(process.env.DISCORD_ADMIN_ROLE_ID);
 
-    // 4. Mint Custom Token
-    const uid = 'discord_' + discordId;
-    const customToken = await getAuth().createCustomToken(uid, {
+    // 4. Mint Firebase Custom Token
+    const uid = 'discord_' + userData.id;
+    const customToken = await admin.auth().createCustomToken(uid, {
       admin: isAdmin,
-      discordId: discordId,
-      discordName: discordName
+      discordId: userData.id,
+      discordName: userData.username
     });
 
-    return res.status(200).json({ token: customToken, isAdmin: isAdmin, discordName: discordName, uid: uid });
+    return res.status(200).json({ token: customToken, isAdmin, discordName: userData.username, uid });
 
   } catch (error) {
-    console.error('Auth handler error:', error);
-    return res.status(500).json({ error: 'Internal server error: ' + (error.message || String(error)) });
+    console.error('Auth error:', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 };
