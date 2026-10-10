@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 module.exports = async function handler(req, res) {
   // CORS
@@ -13,10 +14,10 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    if (!admin.apps.length) {
+    if (!getApps().length) {
       if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error('Missing FIREBASE_PRIVATE_KEY env var');
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      initializeApp({
+        credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
@@ -63,7 +64,7 @@ module.exports = async function handler(req, res) {
     const discordId = userData.id;
     const discordName = userData.username;
 
-    // 3. Get Guild Member info to verify server presence and check Admin Role
+    // 3. Get Guild Member info
     const guildId = process.env.DISCORD_GUILD_ID;
     const adminRoleId = process.env.DISCORD_ADMIN_ROLE_ID;
     const botToken = process.env.DISCORD_BOT_TOKEN;
@@ -83,9 +84,9 @@ module.exports = async function handler(req, res) {
     const memberData = await memberResponse.json();
     const isAdmin = memberData.roles.includes(adminRoleId);
 
-    // 4. Mint Custom Token via Firebase Admin
+    // 4. Mint Custom Token
     const uid = 'discord_' + discordId;
-    const customToken = await admin.auth().createCustomToken(uid, {
+    const customToken = await getAuth().createCustomToken(uid, {
       admin: isAdmin,
       discordId: discordId,
       discordName: discordName
