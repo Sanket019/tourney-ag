@@ -39,9 +39,15 @@ export function initAuth() {
       body: JSON.stringify({ code, redirectUri: discordRedirectUri })
     })
     .then(async res => {
-      const data = await res.json().catch(() => null);
+      let data;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { error: text };
+      }
       if (!res.ok) {
-        throw new Error(data?.error || data?.details?.error_description || `Server error (${res.status})`);
+        throw new Error(data?.error || data?.details?.error_description || `Server error (${res.status}): ${text.substring(0, 100)}`);
       }
       return data;
     })
