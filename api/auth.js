@@ -1,5 +1,6 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const admin = require('firebase-admin');
 
 export default async function handler(req, res) {
   // CORS
@@ -14,10 +15,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!getApps().length) {
+    if (!admin.apps.length) {
       if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error("Missing FIREBASE_PRIVATE_KEY");
-      initializeApp({
-        credential: cert({
+      admin.initializeApp({
+        credential: admin.credential.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
@@ -78,7 +79,7 @@ export default async function handler(req, res) {
     }
     if (!memberResponse.ok) {
       const errorText = await memberResponse.text();
-      return res.status(500).json({ error: 'Failed to verify server membership. Bot token correct? ' + errorText });
+      return res.status(500).json({ error: 'Failed to verify server membership: ' + errorText });
     }
 
     const memberData = await memberResponse.json();
@@ -86,7 +87,7 @@ export default async function handler(req, res) {
 
     // 4. Mint Custom Token via Firebase Admin
     const uid = `discord_${discordId}`;
-    const customToken = await getAuth().createCustomToken(uid, {
+    const customToken = await admin.auth().createCustomToken(uid, {
       admin: isAdmin,
       discordId: discordId,
       discordName: discordName
