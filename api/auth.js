@@ -1,10 +1,8 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 const admin = require('firebase-admin');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
@@ -16,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     if (!admin.apps.length) {
-      if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error("Missing FIREBASE_PRIVATE_KEY");
+      if (!process.env.FIREBASE_PRIVATE_KEY) throw new Error('Missing FIREBASE_PRIVATE_KEY env var');
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
@@ -56,7 +54,7 @@ export default async function handler(req, res) {
 
     // 2. Get Discord User Identity
     const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+      headers: { Authorization: 'Bearer ' + tokenData.access_token }
     });
     const userData = await userResponse.json();
     if (!userResponse.ok) {
@@ -70,8 +68,8 @@ export default async function handler(req, res) {
     const adminRoleId = process.env.DISCORD_ADMIN_ROLE_ID;
     const botToken = process.env.DISCORD_BOT_TOKEN;
 
-    const memberResponse = await fetch(`https://discord.com/api/guilds/${guildId}/members/${discordId}`, {
-      headers: { Authorization: `Bot ${botToken}` }
+    const memberResponse = await fetch('https://discord.com/api/guilds/' + guildId + '/members/' + discordId, {
+      headers: { Authorization: 'Bot ' + botToken }
     });
 
     if (memberResponse.status === 404) {
@@ -86,17 +84,17 @@ export default async function handler(req, res) {
     const isAdmin = memberData.roles.includes(adminRoleId);
 
     // 4. Mint Custom Token via Firebase Admin
-    const uid = `discord_${discordId}`;
+    const uid = 'discord_' + discordId;
     const customToken = await admin.auth().createCustomToken(uid, {
       admin: isAdmin,
       discordId: discordId,
       discordName: discordName
     });
 
-    return res.status(200).json({ token: customToken, isAdmin, discordName, uid });
+    return res.status(200).json({ token: customToken, isAdmin: isAdmin, discordName: discordName, uid: uid });
 
   } catch (error) {
     console.error('Auth handler error:', error);
-    return res.status(500).json({ error: 'Internal server error: ' + (error.message || error.toString()) });
+    return res.status(500).json({ error: 'Internal server error: ' + (error.message || String(error)) });
   }
-}
+};
